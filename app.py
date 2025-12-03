@@ -7,7 +7,7 @@ st.title("🎓 Sistema de Gestión de Horarios")
 
 # --- 1. CARGA DE DATOS ---
 # !!! CAMBIO IMPORTANTE 1: Nombre del archivo actualizado
-archivo_excel = 'HorarioColegio1.xlsx' 
+archivo_excel = 'HorarioColegio.xlsx' 
 nombre_hoja = 'BASE DE DATOS' # Asegúrate que esta hoja exista en el nuevo Excel
 
 try:
