@@ -6,33 +6,38 @@ st.set_page_config(page_title="SSD Horarios", layout="wide")
 st.title("🎓 Sistema de Gestión de Horarios")
 
 # --- 1. CARGA DE DATOS ---
-archivo_excel = 'HorarioColegio.xlsx'
-nombre_hoja = 'BASE DE DATOS' 
+# !!! CAMBIO IMPORTANTE 1: Nombre del archivo actualizado
+archivo_excel = 'HorarioColegio1.xlsx' 
+nombre_hoja = 'BASE DE DATOS' # Asegúrate que esta hoja exista en el nuevo Excel
 
 try:
     df = pd.read_excel(archivo_excel, sheet_name=nombre_hoja)
-    # Filtramos solo lo asignado
+    
+    # Aseguramos que los grados sean texto (string) para evitar errores si Excel los lee como números
+    df['GRADO'] = df['GRADO'].astype(str) 
+
+    # Filtramos solo lo asignado (Donde LINGO puso un 1)
     df = df[df['VALOR'] == 1]
 
-    # --- 2. LÓGICA DE PROFESORES (NUEVO) ---
-    # Creamos una función para asignar el nombre del profesor según tu regla
+    # --- 2. LÓGICA DE PROFESORES ---
     def asignar_profe(fila):
         grado = fila['GRADO']
         curso = fila['CURSO']
         
-        # Tu regla: 1ro, 2do, 3ro -> Profesor A | 4to, 5to -> Profesor B
-        if grado in ['1ERO', '2DO', '3RO']:
+        # !!! CAMBIO IMPORTANTE 2: Ajuste a Minúsculas/Mayúsculas
+        # Convertimos 'grado' a mayúsculas (.upper()) para asegurar que coincida 
+        # sin importar si en Lingo escribiste "1ero" o "1ERO".
+        if grado.upper() in ['1ERO', '2DO', '3RO']:
             return f"PROF_{curso}_A"
         else:
             return f"PROF_{curso}_B"
 
-    # Aplicamos la función para crear una nueva columna "PROFESOR" en memoria
+    # Aplicamos la función
     df['PROFESOR'] = df.apply(asignar_profe, axis=1)
 
     # --- 3. BARRA LATERAL (CONTROLES) ---
     st.sidebar.header("Panel de Control")
     
-    # Selector de VISTA (La clave de tu pregunta)
     tipo_vista = st.sidebar.radio("¿Qué horario desea ver?", ["Por Grado (Alumnos)", "Por Profesor (Docentes)"])
 
     # --- 4. VISUALIZACIÓN ---
@@ -42,9 +47,7 @@ try:
         opcion = st.sidebar.selectbox("Seleccione Grado:", sorted(df['GRADO'].unique()))
         st.subheader(f"📅 Horario de Clases: {opcion}")
         
-        # Filtramos por grado
         data_filtrada = df[df['GRADO'] == opcion]
-        # Mostramos CURSO en la celda
         valor_celda = 'CURSO'
 
     else:
@@ -52,9 +55,8 @@ try:
         opcion = st.sidebar.selectbox("Seleccione Profesor:", sorted(df['PROFESOR'].unique()))
         st.subheader(f"👨‍🏫 Agenda Docente: {opcion}")
         
-        # Filtramos por profesor
         data_filtrada = df[df['PROFESOR'] == opcion]
-        # Mostramos GRADO en la celda (para saber a quién le enseña)
+        # Mostramos GRADO en la celda
         valor_celda = 'GRADO'
 
     # --- 5. ARMADO DE LA MATRIZ (TABLA) ---
@@ -66,17 +68,25 @@ try:
         dias_orden = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE']
         horas_orden = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7']
         
+        # Reindexamos para forzar el orden correcto
         matriz = matriz.reindex(columns=dias_orden, index=horas_orden)
-        matriz = matriz.fillna("-") # Los guiones son los "huecos" o descansos
+        matriz = matriz.fillna("-") 
 
         st.table(matriz)
         
-        # Métrica de "Huecos" (Opcional pero útil para tu informe)
+        # Métrica de Carga
         horas_ocupadas = data_filtrada.shape[0]
-        st.info(f"Carga Horaria Total: {horas_ocupadas} horas semanales.")
+        
+        # Mensaje dinámico según quién sea
+        if tipo_vista == "Por Profesor (Docentes)":
+             st.info(f"⚡ Carga Laboral: {horas_ocupadas} horas esta semana.")
+        else:
+             st.success(f"📚 Horas de clase: {horas_ocupadas} horas esta semana.")
         
     else:
-        st.warning("Este profesor no tiene horas asignadas.")
+        st.warning("No hay horarios asignados para esta selección.")
 
+except FileNotFoundError:
+    st.error(f"❌ No se encuentra el archivo '{archivo_excel}'. Verifica que esté en la misma carpeta que este script.")
 except Exception as e:
-    st.error(f"Error: {e}")
+    st.error(f"❌ Ocurrió un error: {e}")
