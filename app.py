@@ -6,14 +6,24 @@ st.set_page_config(page_title="SSD Horarios", layout="wide")
 st.title("🎓 Sistema de Gestión de Horarios")
 
 # --- 1. CARGA DE DATOS ---
-# !!! CAMBIO IMPORTANTE 1: Nombre del archivo actualizado
-archivo_excel = 'HorarioColegio.xlsx' 
-nombre_hoja = 'BASE DE DATOS' # Asegúrate que esta hoja exista en el nuevo Excel
+archivo_excel = 'HorarioColegio.xlsx'  
+nombre_hoja = 'BASE DE DATOS'
 
 try:
     df = pd.read_excel(archivo_excel, sheet_name=nombre_hoja)
+
+   
+    df = df.loc[:, ~df.columns.duplicated()]
     
-    # Aseguramos que los grados sean texto (string) para evitar errores si Excel los lee como números
+    
+    df = df.dropna(axis=1, how='all')
+
+    #
+    if 'PROFESOR' in df.columns:
+        df = df.drop(columns=['PROFESOR'])
+    
+
+    # Aseguramos que los grados sean texto
     df['GRADO'] = df['GRADO'].astype(str) 
 
     # Filtramos solo lo asignado (Donde LINGO puso un 1)
